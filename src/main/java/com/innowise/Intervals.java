@@ -23,20 +23,6 @@ public class Intervals {
         NATURAL_NOTE_LIST = List.of("C", "D", "E", "F", "G", "A", "B");
     }
 
-    public static void main(String[] args) {
-        System.out.println(intervalConstruction(new String[]{"M2", "C", "asc"}));
-        System.out.println(intervalConstruction(new String[]{"P5", "B"}));
-        System.out.println(intervalConstruction(new String[]{"m2", "Bb", "dsc"}));
-        System.out.println(intervalConstruction(new String[]{"M3", "Cb", "dsc"}));
-        System.out.println(intervalConstruction(new String[]{"P4", "G#", "dsc"}));
-        System.out.println(intervalConstruction(new String[]{"m3", "B", "dsc"}));
-        System.out.println(intervalConstruction(new String[]{"m2", "Fb"}));
-        System.out.println(intervalConstruction(new String[]{"M2", "E#", "dsc"}));
-        System.out.println(intervalConstruction(new String[]{"P4", "E", "dsc"}));
-        System.out.println(intervalConstruction(new String[]{"m2", "D#", "asc"}));
-        System.out.println(intervalConstruction(new String[]{"M7", "G", "asc"}));
-    }
-
     public static String intervalConstruction(String[] args) {
         validateConstructionInput(args);
 
