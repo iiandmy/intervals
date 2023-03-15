@@ -3,16 +3,22 @@ package com.innowise;
 import java.util.List;
 
 public class Intervals {
-
     private static final String ILLEGAL_NUMBER_OF_ELEMENTS_MESSAGE = "Illegal number of elements in input array";
     private static final String CANNOT_IDENTIFY_INTERVAL_MESSAGE = "Cannot identify the interval";
     private static final String CANNOT_IDENTIFY_NOTE_MESSAGE = "Cannot identify the note";
     private static final String CANNOT_IDENTIFY_DIRECTION = "Cannot identify the direction";
+
+    private static final String NOTES_SEMITONES = "C--D--E-F--G--A--B-C";
     private static final String ASCENDING_DIRECTION = "asc";
     private static final String DESCENDING_DIRECTION = "dsc";
+
     private static final int NUMBER_OF_ELEMENTS_WITHOUT_DIRECTION = 2;
     private static final int NUMBER_OF_ELEMENTS_WITH_DIRECTION = 3;
-    private static final String NOTES_SEMITONES = "C--D--E-F--G--A--B-C";
+
+    private static final int INTERVAL_ARGUMENT_POSITION = 0;
+    private static final int STARTING_NOTE_ARGUMENT_POSITION = 1;
+    private static final int DIRECTION_ARGUMENT_POSITION = 2;
+
     private static final List<String> ACCIDENTAL_LIST;
     private static final List<String> INTERVAL_LIST;
     private static final List<String> NATURAL_NOTE_LIST;
@@ -26,29 +32,21 @@ public class Intervals {
     public static String intervalConstruction(String[] args) {
         validateConstructionInput(args);
 
-        String interval = args[0];
-        String startingNote = args[1];
-        String direction = args.length == NUMBER_OF_ELEMENTS_WITHOUT_DIRECTION ? ASCENDING_DIRECTION : args[2];
+        String interval = args[INTERVAL_ARGUMENT_POSITION];
+        String startingNote = args[STARTING_NOTE_ARGUMENT_POSITION];
+        String direction = args.length == NUMBER_OF_ELEMENTS_WITHOUT_DIRECTION ?
+                ASCENDING_DIRECTION :
+                args[DIRECTION_ARGUMENT_POSITION];
 
         int requestDegree = getRequestDegree(interval);
         String naturalNote = getNaturalNote(startingNote);
 
-        String destinationNaturalNote = NATURAL_NOTE_LIST.get(
-                direction.equals(ASCENDING_DIRECTION) ?
-                        (NATURAL_NOTE_LIST.indexOf(naturalNote) + requestDegree - 1) % NATURAL_NOTE_LIST.size() :
-                        (NATURAL_NOTE_LIST.size() + NATURAL_NOTE_LIST.indexOf(naturalNote) - requestDegree + 1) % NATURAL_NOTE_LIST.size()
-        );
-        int semitonesToDestination = direction.equals(ASCENDING_DIRECTION) ?
-                getSemitoneNumberBetweenNotes(startingNote, destinationNaturalNote, direction) :
-                getSemitoneNumberBetweenNotes(destinationNaturalNote, startingNote, direction);
+        String destinationNaturalNote = getDestinationNote(naturalNote, requestDegree, direction);
 
+        int semitonesToDestination = getSemitoneNumberBetweenNotes(startingNote, destinationNaturalNote, direction);
         int requestSemitoneNumber = INTERVAL_LIST.indexOf(interval) + 1;
 
-        String requiredAccidental = ACCIDENTAL_LIST.get(
-                direction.equals(ASCENDING_DIRECTION) ?
-                        ACCIDENTAL_LIST.indexOf("") + (requestSemitoneNumber - semitonesToDestination) :
-                        ACCIDENTAL_LIST.indexOf("") - (requestSemitoneNumber - semitonesToDestination)
-        );
+        String requiredAccidental = getRequiredAccidental(requestSemitoneNumber, semitonesToDestination, direction);
 
         return destinationNaturalNote + requiredAccidental;
     }
@@ -56,19 +54,28 @@ public class Intervals {
     public static String intervalIdentification(String[] args) {
         validateIdentificationInput(args);
 
-        return "123";
+        String direction = args.length == NUMBER_OF_ELEMENTS_WITHOUT_DIRECTION ?
+                ASCENDING_DIRECTION :
+                args[DIRECTION_ARGUMENT_POSITION];
+
+        return INTERVAL_LIST.get(getSemitoneNumberBetweenNotes(args[0], args[1], direction) - 1);
     }
 
     private static int getSemitoneNumberBetweenNotes(String fromNote, String toNote, String direction) {
+        if (direction.equals(DESCENDING_DIRECTION)) {
+            String temp = fromNote;
+            fromNote = toNote;
+            toNote = temp;
+        }
+
         String fromNoteNatural = getNaturalNote(fromNote);
         String toNoteNatural = getNaturalNote(toNote);
 
         int fromNotePosition = NOTES_SEMITONES.indexOf(fromNoteNatural);
         int toNotePosition = NOTES_SEMITONES.indexOf(toNoteNatural);
 
-        int semitonesFromAccidentals = getSemitonesFromAccidentals(fromNote) + getSemitonesFromAccidentals(toNote);
-
-        if (direction.equals(DESCENDING_DIRECTION)) semitonesFromAccidentals *= -1;
+        int semitonesFromAccidentals =
+                getSemitonesFromAccidentals(fromNote, direction) - getSemitonesFromAccidentals(toNote, direction);
 
         return semitonesFromAccidentals + calculateSemitones(
                 (fromNotePosition > toNotePosition) ?
@@ -79,9 +86,26 @@ public class Intervals {
         );
     }
 
-    private static int getSemitonesFromAccidentals(String note) {
+    private static String getDestinationNote(String startNote, int degree, String direction) {
+        return NATURAL_NOTE_LIST.get(
+                direction.equals(ASCENDING_DIRECTION) ?
+                        (NATURAL_NOTE_LIST.indexOf(startNote) + degree - 1) % NATURAL_NOTE_LIST.size() :
+                        (NATURAL_NOTE_LIST.size() + NATURAL_NOTE_LIST.indexOf(startNote) - degree + 1) % NATURAL_NOTE_LIST.size()
+        );
+    }
+
+    private static String getRequiredAccidental(int expectSemitones, int actualSemitones, String direction) {
+        return ACCIDENTAL_LIST.get(
+                direction.equals(ASCENDING_DIRECTION) ?
+                        ACCIDENTAL_LIST.indexOf("") + (expectSemitones - actualSemitones) :
+                        ACCIDENTAL_LIST.indexOf("") - (expectSemitones - actualSemitones)
+        );
+    }
+
+    private static int getSemitonesFromAccidentals(String note, String direction) {
         String accidental = getNoteAccidental(note);
-        return ACCIDENTAL_LIST.indexOf("") - ACCIDENTAL_LIST.indexOf(accidental);
+        int directionMultiplier = direction.equals(ASCENDING_DIRECTION) ? 1 : -1;
+        return directionMultiplier * ACCIDENTAL_LIST.indexOf("") - ACCIDENTAL_LIST.indexOf(accidental);
     }
 
     private static int calculateSemitones(String input) {
@@ -104,13 +128,15 @@ public class Intervals {
     private static void validateConstructionInput(String[] args) {
         checkForArgsLength(args);
 
-        if (!isNoteCorrect(args[1])) {
+        if (isNoteIncorrect(args[STARTING_NOTE_ARGUMENT_POSITION])) {
             throw new RuntimeException(CANNOT_IDENTIFY_NOTE_MESSAGE);
         }
-        if (!isIntervalCorrect(args[0])) {
+        if (isIntervalIncorrect(args[INTERVAL_ARGUMENT_POSITION])) {
             throw new RuntimeException(CANNOT_IDENTIFY_INTERVAL_MESSAGE);
         }
-        if (args.length == NUMBER_OF_ELEMENTS_WITH_DIRECTION && !isDirectionCorrect(args[2])) {
+        if (args.length == NUMBER_OF_ELEMENTS_WITH_DIRECTION &&
+                isDirectionIncorrect(args[DIRECTION_ARGUMENT_POSITION])
+        ) {
             throw new RuntimeException(CANNOT_IDENTIFY_DIRECTION);
         }
     }
@@ -118,10 +144,12 @@ public class Intervals {
     private static void validateIdentificationInput(String[] args) {
         checkForArgsLength(args);
 
-        if (!isNoteCorrect(args[0]) && !isNoteCorrect(args[1])) {
+        if (isNoteIncorrect(args[0]) || isNoteIncorrect(args[1])) {
             throw new RuntimeException(CANNOT_IDENTIFY_NOTE_MESSAGE);
         }
-        if (args.length == NUMBER_OF_ELEMENTS_WITH_DIRECTION && !isDirectionCorrect(args[2])) {
+        if (args.length == NUMBER_OF_ELEMENTS_WITH_DIRECTION &&
+                isDirectionIncorrect(args[DIRECTION_ARGUMENT_POSITION])
+        ) {
             throw new RuntimeException(CANNOT_IDENTIFY_DIRECTION);
         }
     }
@@ -135,20 +163,20 @@ public class Intervals {
         }
     }
 
-    private static boolean isNoteCorrect(String note) {
-        if (note.isBlank()) return false;
+    private static boolean isNoteIncorrect(String note) {
+        if (note.isBlank()) return true;
 
         String naturalNote = getNaturalNote(note);
         String accidentals = getNoteAccidental(note);
 
-        return NATURAL_NOTE_LIST.contains(naturalNote) && ACCIDENTAL_LIST.contains(accidentals);
+        return !NATURAL_NOTE_LIST.contains(naturalNote) || !ACCIDENTAL_LIST.contains(accidentals);
     }
 
-    private static boolean isIntervalCorrect(String interval) {
-        return !interval.isBlank() && INTERVAL_LIST.contains(interval);
+    private static boolean isIntervalIncorrect(String interval) {
+        return interval.isBlank() || !INTERVAL_LIST.contains(interval);
     }
 
-    private static boolean isDirectionCorrect(String direction) {
-        return direction.equals(ASCENDING_DIRECTION) || direction.equals(DESCENDING_DIRECTION);
+    private static boolean isDirectionIncorrect(String direction) {
+        return !direction.equals(ASCENDING_DIRECTION) && !direction.equals(DESCENDING_DIRECTION);
     }
 }
