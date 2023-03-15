@@ -4,6 +4,9 @@ import org.junit.jupiter.api.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 public class IntervalIdentificationTest {
     private static Map<String[], String> intervalIdentificationTestCaseMap;
@@ -28,6 +31,35 @@ public class IntervalIdentificationTest {
     void intervalIdentificationTest() {
         intervalIdentificationTestCaseMap.forEach((input, expectedOutput) ->
                 Assertions.assertEquals(expectedOutput, Intervals.intervalIdentification(input)));
+    }
+
+    @Test
+    void emptyArgsTest() {
+        Assertions.assertThrows(RuntimeException.class, () -> Intervals.intervalIdentification(new String[]{}));
+    }
+
+    @Test
+    void wrongAmountOfArgsTest() {
+        Assertions.assertThrows(RuntimeException.class, () -> Intervals.intervalIdentification(new String[]{"A#"}));
+        Assertions.assertThrows(RuntimeException.class, () -> Intervals.intervalIdentification(new String[]{"Fbb", "D#", "asc", ""}));
+    }
+
+    @Test
+    void incorrectArgsTest() {
+        var unsupportedNotes = "HIJKLMNOPQRSTUVWXYZ";
+        var fromNote = "A#";
+        var generateLimit = 10;
+        Supplier<String> letterSupplier = () -> String.valueOf(
+                unsupportedNotes.charAt(new Random().nextInt(unsupportedNotes.length()))
+        );
+        var wrongNaturalNotes = Stream.generate(letterSupplier).limit(generateLimit).toList();
+
+        wrongNaturalNotes.forEach(note ->
+                Assertions.assertThrows(
+                        RuntimeException.class,
+                        () -> Intervals.intervalIdentification(new String[]{fromNote, note})
+                )
+        );
     }
 
 }

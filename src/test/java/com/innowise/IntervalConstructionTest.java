@@ -6,6 +6,9 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
+import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 public class IntervalConstructionTest {
     private static Map<String[], String> intervalConstructionTestCaseMap;
@@ -33,4 +36,32 @@ public class IntervalConstructionTest {
                 Assertions.assertEquals(expectedOutput, Intervals.intervalConstruction(input)));
     }
 
+    @Test
+    void emptyArgsTest() {
+        Assertions.assertThrows(RuntimeException.class, () -> Intervals.intervalConstruction(new String[]{}));
+    }
+
+    @Test
+    void wrongAmountOfArgsTest() {
+        Assertions.assertThrows(RuntimeException.class, () -> Intervals.intervalConstruction(new String[]{"M2"}));
+        Assertions.assertThrows(RuntimeException.class, () -> Intervals.intervalConstruction(new String[]{"m2", "D#", "asc", ""}));
+    }
+
+    @Test
+    void incorrectArgsTest() {
+        var unsupportedNotes = "HIJKLMNOPQRSTUVWXYZ";
+        var interval = "M2";
+        var generateLimit = 10;
+        Supplier<String> letterSupplier = () -> String.valueOf(
+                unsupportedNotes.charAt(new Random().nextInt(unsupportedNotes.length()))
+        );
+        var wrongNaturalNotes = Stream.generate(letterSupplier).limit(generateLimit).toList();
+
+        wrongNaturalNotes.forEach(note ->
+                Assertions.assertThrows(
+                        RuntimeException.class,
+                        () -> Intervals.intervalConstruction(new String[]{interval, note})
+                )
+        );
+    }
 }
